@@ -26,7 +26,7 @@ struct Rule {
 fn create_temp_files(x: usize) -> Vec<tempfile::NamedTempFile> {
     let mut temp_files = Vec::new();
     for _ in 0..x {
-        let mut file = tempfile::NamedTempFile::new().unwrap();
+        let file = tempfile::NamedTempFile::new().unwrap();
         temp_files.push(file);
     }
     return temp_files;
@@ -49,12 +49,14 @@ fn main() {
         let mut body_str = String::new();
         let _ = req.body.read_to_string(&mut body_str);
         let rules: Vec<Rule> = serde_json::from_str(&body_str).unwrap();
+        let mut code_files = create_temp_files(rules.len());
+        let mut output_files = create_temp_files(rules.len());
+
         let mut rule_to_output = HashMap::new();
         let mut root_file = tempfile::NamedTempFile::new().unwrap();
         let fs_require = "var fs = require('fs');\n".to_string();
         let _ = root_file.write(fs_require.as_bytes());
-        let mut code_files = create_temp_files(rules.len());
-        let mut output_files = create_temp_files(rules.len());
+
         for (i, rule) in rules.iter().enumerate() {
             let ref mut code_file = code_files[i];
             let _ = code_file.write(rule.code.as_bytes());
@@ -62,7 +64,7 @@ fn main() {
             let output_file_name = output_file.path();
             let code_file_name = code_file.path();
             let require_statement = format!(
-                "fs.writeFile({:?}, JSON.stringify(require({:?})), function(){{}})",
+                "fs.writeFile({:?}, JSON.stringify(require({:?})), function(){{}});",
                 output_file_name,
                 code_file_name
             );
