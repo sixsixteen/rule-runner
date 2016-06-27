@@ -1,0 +1,18 @@
+[package]
+name = "test_node_startup"
+version = "0.1.0"
+authors = ["Marcus Buffett <marcusbuffett@me.com>"]
+
+[[bin]]
+name = "server"
+path = "src/main.rs"
+
+[dependencies]
+serde = "*"
+bodyparser = "*"
+hyper = "*"
+router = "*"
+iron = "*"
+tempfile = "*"
+serde_json = "*"
+serde_macros = "*"
