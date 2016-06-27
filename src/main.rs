@@ -39,26 +39,24 @@ fn main() {
         let mut body_str = String::new();
         let _ = req.body.read_to_string(&mut body_str);
         let rules: Vec<Rule> = serde_json::from_str(&body_str).unwrap();
-        let mut children = Vec::new();
-        let mut thread = 0;
+        let mut parent_file = tempfile::NamedTempFile::new().unwrap();
         for rule in rules {
-            let child = thread::spawn( move || {
-                let mut file = tempfile::NamedTempFile::new().unwrap();
-                let _ = file.write(rule.code.as_bytes());
-                let file_name = file.path();
-                let output = Command::new("node")
-                    .arg(file_name)
-                    .output()
-                    .unwrap_or_else(|e| { panic!("failed to execute process: {}", e) });
-                println!("Thread number {:?}", thread);
-                println!("{:?}", String::from_utf8(output.stdout));
-            });
-            children.push(child);
-            thread += 1;
+            let mut file = tempfile::NamedTempFile::new().unwrap();
+            let _ = file.write(rule.code.as_bytes());
+            let file_name = file.path();
+            let require_statement = format!(
+                "require({:?});",
+                file_name
+            );
+            let _ = parent_file.write(require_statement.as_bytes());
         }
-        for child in children {
-            let _ = child.join();
-        }
+        let parent_file_name = parent_file.path();
+        let output = Command::new("node")
+            .arg(parent_file_name)
+            .output()
+            .unwrap_or_else(|e| { panic!("failed to execute process: {}", e) });
+        println!("{:?}", String::from_utf8(output.stdout));
+
         Ok(Response::with((status::Ok, "Ran the rules")))
     }
 
